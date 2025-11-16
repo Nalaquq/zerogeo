@@ -7,7 +7,7 @@
 
 ## Overview
 
-CIVIC is a zero-shot annotation pipeline that automatically generates training datasets for binary segmentation tasks from GeoTIFF imagery—no manual labeling required. Using text prompts and state-of-the-art vision models, you can annotate rivers, roads, buildings, and other features at scale.
+ZeroGeo is a zero-shot annotation pipeline that automatically generates training datasets for binary segmentation tasks from GeoTIFF imagery—no manual labeling required. Using text prompts and state-of-the-art vision models, you can annotate rivers, roads, buildings, and other features at scale.
 
 **The entire pipeline runs with a single command:** `python scripts/civic.py run config/my_project.yaml`
 
@@ -76,7 +76,7 @@ CIVIC is a zero-shot annotation pipeline that automatically generates training d
 **Automated installation (recommended):**
 
 ```bash
-git clone https://github.com/yourusername/civic.git
+git clone git@github.com:Nalaquq/zerogeo.git
 cd civic
 python scripts/smart_install.py  # Auto-detects GPU/CPU and installs dependencies
 ```
