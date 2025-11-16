@@ -1,4 +1,4 @@
-# ZeroGeo: Zero-Shot Annotation Pipeline for Binary Raster Segmentation
+# ZeroGeo: Zero-Shot Annotation Pipeline for Geospatial Analysis
 
 **Automated training dataset generation from geospatial imagery using Grounding DINO and SAM.**
 
