@@ -339,10 +339,10 @@ MIT License - See [LICENSE](LICENSE) for details.
 ## Citation
 
 ```bibtex
-@software{civic2025,
-  title = {CIVIC: Zero-Shot Annotation Pipeline for Binary Raster Segmentation},
-  author = {Your Name},
+@software{ZeroGeo,
+  title = {ZeroGeo: Zero-Shot Annotation Pipeline for Binary Raster Segmentation},
+  author = {Sean Gleason},
   year = {2025},
-  url = {https://github.com/yourusername/civic}
+  url = {https://github.com/yourusername/nalaquq}
 }
 ```
