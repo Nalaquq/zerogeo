@@ -1,0 +1,81 @@
+# Quinhagak Orthomosaic - Roads and Houses Segmentation
+# High-resolution UAS orthomosaic of Quinhagak, Alaska
+# Target: Segment roads, streets, buildings, and houses
+
+# Project metadata
+project:
+  name: "quinhagak_infrastructure"
+  description: "Infrastructure segmentation (roads and buildings) for Quinhagak orthomosaic"
+  input_image: "input/Quinhagak-Orthomosaic.tiff"
+  output_base: "output"  # Run directory will be created as output/quinhagak_infrastructure_TIMESTAMP/
+
+# Tiling configuration
+tiling:
+  tile_size: 512          # 512x512 pixel tiles (optimal for models)
+  overlap: 64             # 64 pixel overlap to avoid edge artifacts
+  stride: 448             # Calculated: tile_size - overlap
+  min_tile_size: 256      # Minimum tile size to keep
+  prefix: "quinhagak"     # Prefix for tile filenames
+
+# Grounding DINO configuration (object detection)
+grounding_dino:
+  config_file: "weights/GroundingDINO_SwinT_OGC.py"
+  model_checkpoint: "weights/groundingdino_swint_ogc.pth"
+  box_threshold: 0.30     # Lower threshold to catch more objects
+  text_threshold: 0.25    # Text similarity threshold
+  device: "cuda"          # Use GPU (change to "cpu" if no GPU)
+
+# SAM configuration (segmentation)
+sam:
+  checkpoint: "weights/sam_vit_h_4b8939.pth"
+  model_type: "vit_h"     # Largest SAM model for best quality
+  device: "cuda"          # Use GPU (change to "cpu" if no GPU)
+
+# Detection prompts for infrastructure
+# Note: These are optimized for detecting roads and buildings in UAS imagery
+prompts:
+  - "road"              # Paved and unpaved roads
+  - "street"            # Streets and pathways
+  - "pathway"           # Walking paths
+  - "building"          # General buildings
+  - "house"             # Residential structures
+  - "structure"         # Other built structures
+  - "roof"              # Building roofs (visible in aerial imagery)
+
+# Output format
+output:
+  format: "both"          # Save as both GeoTIFF and NPZ (for multi-class)
+  preserve_crs: true      # Preserve coordinate system from input
+  compression: "lzw"      # LZW compression for GeoTIFF
+
+# Processing options
+processing:
+  max_workers: 4          # Parallel processing (adjust based on RAM)
+  batch_size: 10          # Process 10 tiles at a time
+  merge_masks: false      # Keep individual class masks (for multi-class review)
+
+# Review settings
+review:
+  auto_accept_threshold: 0.85  # Auto-accept high-confidence detections
+  require_manual_review: true   # Require manual review for all tiles
+
+# Notes:
+# 1. This orthomosaic is 86,000 x 86,000 pixels (very large!)
+#    - Will create approximately 36,000+ tiles
+#    - Tiling will take ~30-60 minutes
+#    - Annotation will take several hours (depending on GPU)
+#
+# 2. The image has 4 bands (RGBA) - first 3 will be used as RGB
+#
+# 3. Prompts are optimized for infrastructure detection:
+#    - "road", "street", "pathway" for linear features
+#    - "building", "house", "structure", "roof" for buildings
+#
+# 4. Consider processing a smaller test area first:
+#    - Use QGIS or similar to extract a subset
+#    - Test with subset before processing full mosaic
+#
+# 5. Storage requirements:
+#    - Tiles: ~50-100 GB (depends on compression)
+#    - Masks: ~10-20 GB
+#    - Total: ~60-120 GB disk space needed

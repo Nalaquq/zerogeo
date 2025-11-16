@@ -1,0 +1,425 @@
+#!/usr/bin/env python3
+"""
+CIVIC: Computer Vision for Infrastructure Classification
+Main entry point for streamlined annotation pipeline.
+
+Usage:
+    # Run full pipeline (tile -> annotate -> review)
+    python scripts/civic.py run config/test_river_gpu.yaml
+
+    # Run individual steps
+    python scripts/civic.py tile config/test_river_gpu.yaml
+    python scripts/civic.py annotate config/test_river_gpu.yaml
+    python scripts/civic.py review config/test_river_gpu.yaml
+
+    # Preview what will happen (dry run)
+    python scripts/civic.py run config/test_river_gpu.yaml --dry-run
+
+    # Skip steps that are already complete
+    python scripts/civic.py run config/test_river_gpu.yaml --skip-existing
+"""
+
+import argparse
+import sys
+from pathlib import Path
+from typing import Optional, List
+import json
+import logging
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from river_segmentation.config import load_config, AnnotationConfig
+from river_segmentation.annotation.tiler import ImageTiler
+from river_segmentation.annotation.batch_annotator import annotate_from_config
+from river_segmentation.annotation.zero_shot_annotator import check_dependencies, print_dependency_status
+from river_segmentation.utils.logging_utils import setup_pipeline_logger, log_system_info
+
+
+class CivicPipeline:
+    """
+    Main pipeline orchestrator for CIVIC annotation workflow.
+
+    Automatically manages directory structure and workflow steps.
+    """
+
+    def __init__(self, config_path: Path, dry_run: bool = False, skip_existing: bool = False):
+        """
+        Initialize pipeline.
+
+        Args:
+            config_path: Path to configuration YAML
+            dry_run: If True, show what will happen without executing
+            skip_existing: If True, skip steps that have already been completed
+        """
+        self.config_path = Path(config_path)
+        self.dry_run = dry_run
+        self.skip_existing = skip_existing
+
+        # Load configuration
+        print("Loading configuration...")
+        self.config = load_config(self.config_path)
+
+        # Setup logger
+        self.logger = setup_pipeline_logger(
+            log_dir=self.config.logs_dir,
+            pipeline_name="civic_pipeline",
+            level=logging.INFO
+        )
+
+        self.logger.info(f"Configuration loaded from: {self.config_path}")
+        self.logger.info(f"Dry run: {dry_run}")
+        self.logger.info(f"Skip existing: {skip_existing}")
+
+    def setup(self):
+        """Initialize and validate the pipeline."""
+        print("\n" + "=" * 70)
+        print("CIVIC ANNOTATION PIPELINE")
+        print("=" * 70)
+        print(self.config.get_summary())
+
+        self.logger.info("Setting up pipeline")
+
+        if self.dry_run:
+            print("\n" + "=" * 70)
+            print("DRY RUN MODE - No changes will be made")
+            print("=" * 70)
+            self.logger.warning("Running in DRY RUN mode - no files will be created")
+
+        # Log system info
+        log_system_info(self.logger)
+
+        # Check dependencies
+        self.logger.info("Checking dependencies...")
+        print("\nChecking dependencies...")
+        deps = check_dependencies()
+        if not all(deps.values()):
+            self.logger.error("Missing required dependencies")
+            print_dependency_status()
+            raise RuntimeError("Missing required dependencies. Run: python scripts/smart_install.py")
+        print("✓ All dependencies satisfied")
+        self.logger.info("All dependencies satisfied")
+
+        # Create directory structure
+        self.logger.info("Setting up directory structure...")
+        print("\nSetting up directory structure...")
+        if not self.dry_run:
+            self.config.create_directories()
+
+        print(f"  ✓ Project root: {self.config.project.output_dir}")
+        print(f"  ✓ Tiles: {self.config.tiles_dir}")
+        print(f"  ✓ Raw masks: {self.config.raw_masks_dir}")
+        print(f"  ✓ Reviewed masks: {self.config.reviewed_masks_dir}")
+        print(f"  ✓ Training data: {self.config.training_data_dir}")
+        print(f"  ✓ Logs: {self.config.logs_dir}")
+
+        self.logger.info(f"Directories created under: {self.config.project.output_dir}")
+
+    def check_step_complete(self, step: str) -> bool:
+        """
+        Check if a pipeline step has already been completed.
+
+        Args:
+            step: Step name ('tile', 'annotate', or 'review')
+
+        Returns:
+            True if step is complete, False otherwise
+        """
+        if step == "tile":
+            metadata_path = self.config.tiles_dir / f"{self.config.tiling.prefix}_metadata.json"
+            return metadata_path.exists()
+
+        elif step == "annotate":
+            metadata_path = self.config.raw_masks_dir / "annotation_metadata.json"
+            return metadata_path.exists()
+
+        elif step == "review":
+            metadata_path = self.config.reviewed_masks_dir / "review_metadata.json"
+            return metadata_path.exists()
+
+        return False
+
+    def run_tile(self, force: bool = False) -> bool:
+        """
+        Run tiling step.
+
+        Args:
+            force: Force tiling even if tiles already exist
+
+        Returns:
+            True if successful, False if skipped
+        """
+        if not force and self.skip_existing and self.check_step_complete("tile"):
+            print("\n" + "=" * 70)
+            print("STEP 1/3: TILING [SKIPPED - Already Complete]")
+            print("=" * 70)
+            metadata_path = self.config.tiles_dir / f"{self.config.tiling.prefix}_metadata.json"
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+                num_tiles = len(metadata.get("tiles", []))
+            print(f"✓ Found {num_tiles} existing tiles")
+            return False
+
+        print("\n" + "=" * 70)
+        print("STEP 1/3: TILING")
+        print("=" * 70)
+
+        print(f"\nInput: {self.config.project.input_image}")
+        print(f"Output: {self.config.tiles_dir}")
+        print(f"Tile size: {self.config.tiling.tile_size}x{self.config.tiling.tile_size}")
+        print(f"Overlap: {self.config.tiling.overlap} pixels")
+        print(f"Stride: {self.config.tiling.stride} pixels")
+
+        if self.dry_run:
+            print("\n[DRY RUN] Would create tiles here")
+            return True
+
+        # Create tiler
+        self.logger.info("Creating ImageTiler...")
+        tiler = ImageTiler(
+            tile_size=self.config.tiling.tile_size,
+            overlap=self.config.tiling.overlap,
+            min_tile_size=self.config.tiling.min_tile_size,
+            log_dir=self.config.logs_dir
+        )
+
+        # Tile the image
+        self.logger.info("Starting tiling process...")
+        tile_manager = tiler.tile_image(
+            input_path=Path(self.config.project.input_image),
+            output_dir=self.config.tiles_dir,
+            prefix=self.config.tiling.prefix,
+            save_tiles=True
+        )
+
+        print(f"\n✓ Created {len(tile_manager)} tiles")
+        print(f"✓ Saved to: {self.config.tiles_dir}")
+        self.logger.info(f"Tiling step complete - created {len(tile_manager)} tiles")
+
+        return True
+
+    def run_annotate(self, force: bool = False) -> bool:
+        """
+        Run annotation step.
+
+        Args:
+            force: Force annotation even if annotations already exist
+
+        Returns:
+            True if successful, False if skipped
+        """
+        # Check if tiles exist (skip in dry-run mode)
+        metadata_path = self.config.tiles_dir / f"{self.config.tiling.prefix}_metadata.json"
+        if not self.dry_run and not metadata_path.exists():
+            raise RuntimeError(
+                f"Tiles not found. Run tiling first:\n"
+                f"  python scripts/civic.py tile {self.config_path}"
+            )
+
+        if not force and self.skip_existing and self.check_step_complete("annotate"):
+            print("\n" + "=" * 70)
+            print("STEP 2/3: ANNOTATION [SKIPPED - Already Complete]")
+            print("=" * 70)
+            ann_metadata_path = self.config.raw_masks_dir / "annotation_metadata.json"
+            if ann_metadata_path.exists():
+                with open(ann_metadata_path) as f:
+                    metadata = json.load(f)
+                    num_annotated = len(metadata.get("tiles", {}))
+                print(f"✓ Found {num_annotated} existing annotations")
+            return False
+
+        print("\n" + "=" * 70)
+        print("STEP 2/3: ANNOTATION")
+        print("=" * 70)
+
+        print(f"\nInput: {self.config.tiles_dir}")
+        print(f"Output: {self.config.raw_masks_dir}")
+        print(f"Prompts: {', '.join(self.config.prompts)}")
+        print(f"Device: {self.config.grounding_dino.device}")
+
+        if self.dry_run:
+            print("\n[DRY RUN] Would run zero-shot annotation here")
+            return True
+
+        # Run annotation using existing function
+        print()
+        annotate_from_config(self.config_path)
+
+        return True
+
+    def run_review(self, force: bool = False) -> bool:
+        """
+        Run review step.
+
+        Args:
+            force: Force review even if review already complete
+
+        Returns:
+            True if successful, False if skipped
+        """
+        # Check if annotations exist (skip in dry-run mode)
+        ann_metadata_path = self.config.raw_masks_dir / "annotation_metadata.json"
+        if not self.dry_run and not ann_metadata_path.exists():
+            raise RuntimeError(
+                f"Annotations not found. Run annotation first:\n"
+                f"  python scripts/civic.py annotate {self.config_path}"
+            )
+
+        if not force and self.skip_existing and self.check_step_complete("review"):
+            print("\n" + "=" * 70)
+            print("STEP 3/3: REVIEW [SKIPPED - Already Complete]")
+            print("=" * 70)
+            print("✓ Review already completed")
+            return False
+
+        print("\n" + "=" * 70)
+        print("STEP 3/3: REVIEW")
+        print("=" * 70)
+
+        print(f"\nTiles: {self.config.tiles_dir}")
+        print(f"Masks: {self.config.raw_masks_dir}")
+        print(f"Output: {self.config.reviewed_masks_dir}")
+
+        if self.dry_run:
+            print("\n[DRY RUN] Would launch interactive reviewer here")
+            print("Command: python scripts/launch_reviewer.py", end=" ")
+            print(f"{self.config.tiles_dir} {self.config.raw_masks_dir}")
+            return True
+
+        # Launch reviewer (use web UI by default)
+        print("\nLaunching interactive reviewer...")
+        print("Review annotations in your browser")
+
+        import subprocess
+        result = subprocess.run([
+            sys.executable,
+            "scripts/launch_reviewer.py",
+            str(self.config.tiles_dir),
+            str(self.config.raw_masks_dir),
+            "--web"  # Use web UI by default (works in WSL)
+        ])
+
+        if result.returncode != 0:
+            print(f"\n✗ Review failed with code {result.returncode}")
+            return False
+
+        print("\n✓ Review complete")
+        return True
+
+    def run_full_pipeline(self):
+        """Run the complete pipeline: tile -> annotate -> review."""
+        self.setup()
+
+        # Step 1: Tiling
+        self.run_tile()
+
+        # Step 2: Annotation
+        self.run_annotate()
+
+        # Step 3: Review
+        self.run_review()
+
+        # Final summary
+        if not self.dry_run:
+            print("\n" + "=" * 70)
+            print("PIPELINE COMPLETE!")
+            print("=" * 70)
+            print(f"\nReviewed masks: {self.config.reviewed_masks_dir}")
+            print(f"\nNext steps:")
+            print(f"  1. Export training data:")
+            print(f"     python scripts/export_training_data.py {self.config.reviewed_masks_dir}")
+            print(f"  2. Train model:")
+            print(f"     python scripts/train_model.py --config {self.config_path}")
+            print()
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="CIVIC: Streamlined annotation pipeline for infrastructure classification",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run full pipeline
+  %(prog)s run config/test_river_gpu.yaml
+
+  # Run individual steps
+  %(prog)s tile config/test_river_gpu.yaml
+  %(prog)s annotate config/test_river_gpu.yaml
+  %(prog)s review config/test_river_gpu.yaml
+
+  # Preview without executing
+  %(prog)s run config/test_river_gpu.yaml --dry-run
+
+  # Skip steps that are already complete
+  %(prog)s run config/test_river_gpu.yaml --skip-existing
+
+  # Force re-run even if complete
+  %(prog)s annotate config/test_river_gpu.yaml --force
+        """
+    )
+
+    parser.add_argument(
+        "command",
+        choices=["run", "tile", "annotate", "review"],
+        help="Command to execute"
+    )
+
+    parser.add_argument(
+        "config",
+        type=str,
+        help="Path to configuration YAML file"
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would happen without executing"
+    )
+
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip steps that have already been completed"
+    )
+
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force execution even if step is complete"
+    )
+
+    args = parser.parse_args()
+
+    try:
+        # Create pipeline
+        pipeline = CivicPipeline(
+            config_path=args.config,
+            dry_run=args.dry_run,
+            skip_existing=args.skip_existing
+        )
+
+        # Execute command
+        if args.command == "run":
+            pipeline.run_full_pipeline()
+        elif args.command == "tile":
+            pipeline.setup()
+            pipeline.run_tile(force=args.force)
+        elif args.command == "annotate":
+            pipeline.setup()
+            pipeline.run_annotate(force=args.force)
+        elif args.command == "review":
+            pipeline.setup()
+            pipeline.run_review(force=args.force)
+
+        return 0
+
+    except Exception as e:
+        print(f"\n❌ Error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,8 @@
+# Ignore all files in input directory (large data files)
+*
+
+# Except this gitignore
+!.gitignore
+
+# Except README
+!README.md

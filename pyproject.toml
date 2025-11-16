@@ -1,0 +1,117 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "river-segmentation"
+version = "0.1.0"
+description = "Zero-shot training dataset pipeline for binary raster segmentation using Grounding DINO and SAM"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+keywords = ["zero-shot", "annotation", "binary-raster", "segmentation", "grounding-dino", "sam", "tiff", "geospatial"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+dependencies = [
+    "numpy>=1.21.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "rasterio>=1.3.0",
+    "geopandas>=0.12.0",
+    "scikit-learn>=1.0.0",
+    "matplotlib>=3.5.0",
+    "pillow>=9.0.0",
+    "tqdm>=4.60.0",
+    "pyyaml>=6.0",
+    "PyQt5>=5.15.0",
+]
+
+[project.scripts]
+civic = "civic.cli:main"
+civic-download-models = "river_segmentation.utils.model_downloader:main"
+civic-check-hardware = "river_segmentation.utils.hardware_detect:main"
+
+[project.optional-dependencies]
+annotation = [
+    "opencv-python>=4.5.0",
+    "transformers>=4.30.0",
+    "supervision>=0.16.0",
+    "huggingface-hub>=0.16.0",
+    "scipy>=1.9.0",
+    "groundingdino-py>=0.1.0",
+    "segment-anything>=1.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "isort>=5.10.0",
+]
+docs = [
+    "sphinx>=4.5.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "myst-parser>=0.18.0",
+]
+all = [
+    "opencv-python>=4.5.0",
+    "transformers>=4.30.0",
+    "supervision>=0.16.0",
+    "huggingface-hub>=0.16.0",
+    "scipy>=1.9.0",
+    "groundingdino-py>=0.1.0",
+    "segment-anything>=1.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=3.0.0",
+    "black>=22.0.0",
+    "flake8>=4.0.0",
+    "mypy>=0.950",
+    "isort>=5.10.0",
+    "sphinx>=4.5.0",
+    "sphinx-rtd-theme>=1.0.0",
+    "myst-parser>=0.18.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/river-segmentation"
+Documentation = "https://river-segmentation.readthedocs.io"
+Repository = "https://github.com/yourusername/river-segmentation"
+"Bug Tracker" = "https://github.com/yourusername/river-segmentation/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=river_segmentation --cov-report=html --cov-report=term"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

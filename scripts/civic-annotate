@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+"""
+CIVIC command-line interface entry point.
+
+This wrapper allows running CIVIC as a standalone command:
+    ./civic-annotate run config/test_river_gpu.yaml
+
+To install system-wide:
+    sudo ln -s $(pwd)/civic-annotate /usr/local/bin/civic-annotate
+    # Then use: civic-annotate run config/test_river_gpu.yaml
+"""
+
+import sys
+from pathlib import Path
+
+# Ensure we can import from the project
+project_root = Path(__file__).parent.resolve()
+sys.path.insert(0, str(project_root))
+
+# Import and run the main script
+from scripts.civic import main
+
+if __name__ == "__main__":
+    sys.exit(main())

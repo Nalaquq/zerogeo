@@ -1,0 +1,101 @@
+# ============================================================================
+# CIVIC - Zero-Shot Training Dataset Pipeline
+# Complete dependencies for binary raster segmentation
+# ============================================================================
+#
+# ⚠️  IMPORTANT: This file is for MANUAL installation only!
+#
+# RECOMMENDED: Use the smart installer instead:
+#   python scripts/smart_install.py
+#
+# The smart installer will:
+#   ✓ Auto-detect your GPU/CPU
+#   ✓ Install correct PyTorch version (CUDA or CPU)
+#   ✓ Install all dependencies below
+#   ✓ Download model weights
+#   ✓ Create optimized config for your hardware
+#
+# If you prefer manual installation, continue below...
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# PyTorch - CHOOSE YOUR VERSION:
+# ----------------------------------------------------------------------------
+# For GPU (CUDA 12.1):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# For CPU only:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# Then install the rest:
+#   pip install -r requirements.txt
+#
+# NOTE: The generic "torch>=2.0.0" below will install CPU version by default!
+# ----------------------------------------------------------------------------
+torch>=2.0.0
+torchvision>=0.15.0
+
+# ----------------------------------------------------------------------------
+# Geospatial & Raster Processing
+# ----------------------------------------------------------------------------
+rasterio>=1.3.0
+geopandas>=0.12.0
+
+# ----------------------------------------------------------------------------
+# Machine Learning Utilities
+# ----------------------------------------------------------------------------
+scikit-learn>=1.0.0
+
+# ----------------------------------------------------------------------------
+# Visualization & General Utilities
+# ----------------------------------------------------------------------------
+matplotlib>=3.5.0
+pillow>=9.0.0
+tqdm>=4.60.0
+
+# ----------------------------------------------------------------------------
+# Configuration
+# ----------------------------------------------------------------------------
+pyyaml>=6.0
+
+# ----------------------------------------------------------------------------
+# Web UI (for annotation reviewer)
+# ----------------------------------------------------------------------------
+flask>=2.0.0   # Web-based UI (works everywhere including WSL)
+
+# ----------------------------------------------------------------------------
+# Zero-Shot Annotation Dependencies
+# ----------------------------------------------------------------------------
+# Computer vision
+opencv-python>=4.5.0
+
+# Transformers and language models
+transformers>=4.30.0
+
+# Detection utilities (pinned to match groundingdino-py requirement)
+supervision==0.6.0
+
+# Hugging Face Hub
+huggingface-hub>=0.16.0
+
+# Additional image processing
+scipy>=1.9.0
+
+# ----------------------------------------------------------------------------
+# Zero-Shot Models (Grounding DINO + SAM)
+# ----------------------------------------------------------------------------
+groundingdino-py>=0.1.0
+segment-anything>=1.0
+
+# ============================================================================
+# After installation, download model weights:
+#   civic-download-models
+#
+# This downloads:
+#   - Grounding DINO weights (~670MB)
+#   - SAM weights (~375MB for vit_b, default)
+#   - Config files
+#
+# For different SAM models:
+#   civic-download-models --sam-model vit_h  # Best quality (~2.4GB)
+#   civic-download-models --sam-model vit_l  # Balanced (~1.2GB)
+#   civic-download-models --sam-model vit_b  # Fast, CPU-friendly (~375MB)
+# ============================================================================

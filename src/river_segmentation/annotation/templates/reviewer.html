@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotation Reviewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/reviewer.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Annotation Reviewer</h1>
+            <div class="header-stats">
+                <span class="stat">
+                    <span class="stat-label">Total:</span>
+                    <span id="stat-total" class="stat-value">0</span>
+                </span>
+                <span class="stat">
+                    <span class="stat-label">Accepted:</span>
+                    <span id="stat-accepted" class="stat-value stat-accepted">0</span>
+                </span>
+                <span class="stat">
+                    <span class="stat-label">Rejected:</span>
+                    <span id="stat-rejected" class="stat-value stat-rejected">0</span>
+                </span>
+                <span class="stat">
+                    <span class="stat-label">Progress:</span>
+                    <span id="stat-progress" class="stat-value">0%</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Image Viewer -->
+            <div class="viewer-section">
+                <div class="viewer-header">
+                    <h2 id="tile-title">Loading...</h2>
+                    <div class="viewer-controls">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="toggle-mask" checked>
+                            <span>Show Mask</span>
+                        </label>
+                        <label class="slider-label">
+                            <span>Opacity:</span>
+                            <input type="range" id="mask-opacity" min="0" max="100" value="50">
+                            <span id="opacity-value">50%</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="image-container" id="image-container">
+                    <img id="tile-image" src="" alt="Tile Image">
+                    <img id="mask-overlay" src="" alt="Mask Overlay" class="mask-overlay">
+                    <canvas id="edit-canvas" class="edit-canvas"></canvas>
+                    <div class="loading-spinner" id="loading-spinner">Loading...</div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="navigation">
+                    <button id="btn-prev" class="btn btn-nav" title="Previous (Left Arrow)">
+                        ← Previous
+                    </button>
+                    <span id="tile-counter" class="tile-counter">0 / 0</span>
+                    <button id="btn-next" class="btn btn-nav" title="Next (Right Arrow)">
+                        Next →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <div class="actions">
+                    <h3>Review Actions</h3>
+                    <button id="btn-accept" class="btn btn-accept" title="Accept (A)">
+                        ✓ Accept
+                    </button>
+                    <button id="btn-reject" class="btn btn-reject" title="Reject (R)">
+                        ✗ Reject
+                    </button>
+                    <button id="btn-skip" class="btn btn-skip" title="Skip (S)">
+                        ⊙ Skip
+                    </button>
+                </div>
+
+                <div class="classes-section" id="classes-section" style="display: none;">
+                    <h3>Classes <span id="class-count">(0)</span></h3>
+                    <div id="classes-list" class="classes-list">
+                        <!-- Classes will be populated dynamically -->
+                    </div>
+                    <div class="class-controls">
+                        <button id="btn-select-all" class="btn btn-secondary btn-small">Select All</button>
+                        <button id="btn-deselect-all" class="btn btn-secondary btn-small">Deselect All</button>
+                    </div>
+                </div>
+
+                <div class="reassign-section" id="reassign-section" style="display: none;">
+                    <h3>Reassign Selected Mask To:</h3>
+                    <div id="reassign-options" class="reassign-options">
+                        <!-- Radio buttons for categories will be populated here -->
+                    </div>
+                    <button id="btn-apply-reassign" class="btn btn-accept btn-small" style="display: none;">Apply Reassignment</button>
+                </div>
+
+                <div class="editing-section">
+                    <h3>Mask Editing</h3>
+                    <button id="btn-toggle-edit" class="btn btn-secondary">Enable Editing</button>
+
+                    <div id="edit-tools" style="display: none;">
+                        <div class="tool-group">
+                            <label>Mode:</label>
+                            <div class="button-group">
+                                <button id="btn-draw-mode" class="btn btn-secondary btn-small active">Draw</button>
+                                <button id="btn-erase-mode" class="btn btn-secondary btn-small">Erase</button>
+                                <button id="btn-polygon-mode" class="btn btn-secondary btn-small">Polygon</button>
+                            </div>
+                        </div>
+
+                        <div class="tool-group">
+                            <label for="brush-size">Brush Size: <span id="brush-size-value">10</span>px</label>
+                            <input type="range" id="brush-size" min="1" max="50" value="10">
+                        </div>
+
+                        <div class="tool-group">
+                            <label for="edit-class-select">Edit Class:</label>
+                            <select id="edit-class-select" class="class-select">
+                                <option value="">All classes (merged)</option>
+                            </select>
+                        </div>
+
+                        <div id="polygon-tools" style="display: none;">
+                            <div class="polygon-help">
+                                Click to add points. Double-click to finish. Press Escape to cancel.
+                            </div>
+                            <button id="btn-clear-polygon" class="btn btn-secondary btn-small">Clear Points</button>
+                        </div>
+
+                        <button id="btn-cancel-edits" class="btn btn-secondary">Discard All Edits</button>
+                    </div>
+                </div>
+
+                <div class="notes-section">
+                    <h3>Notes</h3>
+                    <textarea id="notes-text" placeholder="Add notes about this tile..."></textarea>
+                    <button id="btn-save-notes" class="btn btn-secondary">Save Notes</button>
+                </div>
+
+                <div class="keyboard-shortcuts">
+                    <h3>Keyboard Shortcuts</h3>
+                    <ul>
+                        <li><kbd>A</kbd> - Accept tile</li>
+                        <li><kbd>R</kbd> - Reject tile</li>
+                        <li><kbd>S</kbd> - Skip tile</li>
+                        <li><kbd>←</kbd> / <kbd>→</kbd> - Navigate</li>
+                        <li><kbd>M</kbd> - Toggle mask</li>
+                    </ul>
+                </div>
+
+                <div class="export-section">
+                    <h3>Export</h3>
+                    <button id="btn-export" class="btn btn-secondary">Export Results</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/reviewer.js') }}"></script>
+</body>
+</html>

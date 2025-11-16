@@ -1,0 +1,81 @@
+# ============================================================================
+# CIVIC - Base Dependencies (without PyTorch)
+# Use smart_install.py for automatic GPU/CPU installation!
+# ============================================================================
+#
+# RECOMMENDED INSTALLATION:
+#   python scripts/smart_install.py
+#
+# This will automatically:
+#   1. Detect your GPU/CPU
+#   2. Install correct PyTorch version (CUDA or CPU)
+#   3. Install all dependencies below
+#   4. Download model weights
+#   5. Create optimized config file
+#
+# MANUAL INSTALLATION (if you prefer):
+#   1. Install PyTorch first (GPU or CPU version)
+#   2. Then: pip install -r requirements-base.txt
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Geospatial & Raster Processing
+# ----------------------------------------------------------------------------
+rasterio>=1.3.0
+geopandas>=0.12.0
+
+# ----------------------------------------------------------------------------
+# Core Scientific Computing
+# ----------------------------------------------------------------------------
+numpy>=1.21.0
+scikit-learn>=1.0.0
+scipy>=1.9.0
+
+# ----------------------------------------------------------------------------
+# Visualization & General Utilities
+# ----------------------------------------------------------------------------
+matplotlib>=3.5.0
+pillow>=9.0.0
+tqdm>=4.60.0
+
+# ----------------------------------------------------------------------------
+# Configuration
+# ----------------------------------------------------------------------------
+pyyaml>=6.0
+
+# ----------------------------------------------------------------------------
+# GUI (for annotation reviewer)
+# ----------------------------------------------------------------------------
+PyQt5>=5.15.0
+
+# ----------------------------------------------------------------------------
+# Zero-Shot Annotation Dependencies
+# ----------------------------------------------------------------------------
+# Computer vision
+opencv-python>=4.5.0
+
+# Transformers and language models
+transformers>=4.30.0
+
+# Detection utilities (pinned to match groundingdino-py requirement)
+supervision==0.6.0
+
+# Hugging Face Hub
+huggingface-hub>=0.16.0
+
+# ----------------------------------------------------------------------------
+# Zero-Shot Models (Grounding DINO + SAM)
+# ----------------------------------------------------------------------------
+groundingdino-py>=0.1.0
+segment-anything>=1.0
+
+# ============================================================================
+# NOTE: PyTorch is NOT included here!
+#
+# PyTorch installation depends on your hardware (GPU vs CPU).
+# Use scripts/smart_install.py for automatic installation!
+#
+# Or install PyTorch manually first:
+#   - GPU: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+#   - CPU: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# ============================================================================

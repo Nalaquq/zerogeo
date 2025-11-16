@@ -1,0 +1,8 @@
+# Ignore all run directories in output (generated data)
+*
+
+# Except this gitignore
+!.gitignore
+
+# Except README
+!README.md

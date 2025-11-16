@@ -1,0 +1,53 @@
+# Quinhagak Test Subset - Quick Infrastructure Test
+# 4096x4096 pixel subset for fast testing
+# Target: Segment roads, streets, buildings, and houses
+
+# Project metadata
+project:
+  name: "quinhagak_test"
+  description: "Test run on small subset for infrastructure segmentation"
+  input_image: "input/quinhagak_subset_4096x4096.tif"
+  output_base: "output"
+
+# Tiling configuration
+tiling:
+  tile_size: 512
+  overlap: 64
+  min_tile_size: 256
+  prefix: "quinhagak_test"
+
+# Grounding DINO configuration (object detection)
+grounding_dino:
+  config_file: "weights/GroundingDINO_SwinT_OGC.py"
+  model_checkpoint: "weights/groundingdino_swint_ogc.pth"
+  box_threshold: 0.30
+  text_threshold: 0.25
+  device: "cuda"
+
+# SAM configuration (segmentation)
+sam:
+  checkpoint: "weights/sam_vit_h_4b8939.pth"
+  model_type: "vit_h"
+  device: "cuda"
+
+# Detection prompts for infrastructure
+prompts:
+  - "road"
+  - "building"
+  - "sewer pipe"
+  - "boat"
+# Output format
+output:
+  format: "both"
+  preserve_crs: true
+  compression: "lzw"
+
+# Processing options
+processing:
+  max_workers: 4
+  batch_size: 10
+  merge_masks: false
+
+# Review settings
+review:
+  auto_accept_threshold: 0.85
